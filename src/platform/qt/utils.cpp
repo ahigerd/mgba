@@ -5,6 +5,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 #include "utils.h"
 
+#include <mgba/gb/interface.h>
+
 #include <QCoreApplication>
 #include <QHostAddress>
 #include <QObject>
@@ -29,7 +31,7 @@ QString niceSizeFormat(size_t filesize) {
 	return unit.arg(size, 0, 'f', int(size * 10) % 10 ? 1 : 0);
 }
 
-QString nicePlatformFormat(mPlatform platform) {
+QString nicePlatformFormat(mPlatform platform, uint8_t validModels) {
 	switch (platform) {
 #ifdef M_CORE_GBA
 	case mPLATFORM_GBA:
@@ -37,6 +39,9 @@ QString nicePlatformFormat(mPlatform platform) {
 #endif
 #ifdef M_CORE_GB
 	case mPLATFORM_GB:
+		if (validModels != GB_MODEL_AUTODETECT && (validModels & GB_MODEL_CGB)) {
+			return QObject::tr("GBC");
+		}
 		return QObject::tr("GB");
 #endif
 	default:
