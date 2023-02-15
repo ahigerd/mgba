@@ -21,6 +21,7 @@ static const QStringList iconSets{
 	"GBA",
 	"GBC",
 	"GB",
+	"SGB",
 	// "DS",
 };
 

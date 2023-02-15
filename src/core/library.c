@@ -6,9 +6,12 @@
 #include <mgba/core/library.h>
 
 #include <mgba/core/core.h>
+#include <mgba-util/vfs.h>
+
+#ifdef M_CORE_GB
 #include <mgba/gb/interface.h>
 #include <mgba/internal/gb/gb.h>
-#include <mgba-util/vfs.h>
+#endif
 
 #ifdef USE_SQLITE3
 
@@ -94,7 +97,7 @@ static void _bindConstraints(sqlite3_stmt* statement, const struct mLibraryEntry
 		sqlite3_bind_int(statement, index, constraints->platform);
 	}
 
-	if (constraints->platformModels != GB_MODEL_AUTODETECT) {
+	if (constraints->platformModels != M_LIBRARY_MODEL_UNKNOWN) {
 		index = sqlite3_bind_parameter_index(statement, ":models");
 		sqlite3_bind_int(statement, index, constraints->platformModels);
 	}
@@ -341,13 +344,15 @@ bool _mLibraryAddEntry(struct mLibrary* library, const char* filename, const cha
 	core->getGameCode(core, entry.internalCode);
 	core->checksum(core, &entry.crc32, mCHECKSUM_CRC32);
 	entry.platform = core->platform(core);
-	entry.platformModels = GB_MODEL_AUTODETECT;
+	entry.platformModels = M_LIBRARY_MODEL_UNKNOWN;
+#ifdef M_CORE_GB
 	if (entry.platform == mPLATFORM_GB) {
 		struct GB* gb = (struct GB*) core->board;
 		if (gb->memory.rom) {
 			entry.platformModels = GBValidModels(gb->memory.rom);
 		}
 	}
+#endif
 	entry.title = NULL;
 	entry.base = base;
 	entry.filename = filename;

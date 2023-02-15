@@ -34,7 +34,7 @@ struct LibraryEntry {
 	QByteArray internalTitle;
 	QByteArray internalCode;
 	mPlatform platform;
-	uint8_t platformModels;
+	int platformModels;
 	size_t filesize;
 	uint32_t crc32;
 

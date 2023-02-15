@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 #include "LibraryEntry.h"
 
-#include "../utils.h"
+#include "utils.h"
 
 #include <mgba/core/library.h>
 
