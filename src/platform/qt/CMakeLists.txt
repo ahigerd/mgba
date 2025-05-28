@@ -171,6 +171,7 @@ set(SOURCE_FILES
 	TileView.cpp
 	utils.cpp
 	Window.cpp
+	WindowActions.cpp
 	VFileDevice.cpp
 	VideoProxy.cpp
 	VideoView.cpp)

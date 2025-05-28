@@ -23,7 +23,6 @@
 #include "InputController.h"
 #include "LoadSaveState.h"
 #include "LogController.h"
-#include "OverrideView.h"
 #include "SettingsView.h"
 #ifdef ENABLE_SCRIPTING
 #include "scripting/ScriptingController.h"
@@ -41,11 +40,13 @@ class GDBController;
 class LibraryController;
 class ShaderSelector;
 class ShortcutController;
+class WindowActions;
 class WindowBackground;
 class WindowPopups;
 
 class Window : public QMainWindow {
 Q_OBJECT
+friend class WindowActions;
 
 public:
 	Window(CoreManager* manager, ConfigController* config, int playerId = 0, QWidget* parent = nullptr);
@@ -58,12 +59,16 @@ public:
 
 	void argumentsPassed();
 
+	int scaleMultiplier() const;
+	void setScaleMultiplier(int factor);
 	void resizeFrame(const QSize& size);
 
 	void updateMultiplayerStatus(bool canOpenAnother);
 	void updateMultiplayerActive(bool active);
 
 	InputController* inputController() { return &m_inputController; }
+
+	WindowPopups* popups() const { return m_popups.get(); }
 
 signals:
 	void startDrawing();
@@ -74,6 +79,7 @@ signals:
 public slots:
 	void setController(CoreController* controller, const QString& fname);
 	void selectROM();
+	void loadROM(const QString& filename);
 	void bootBIOS();
 #ifdef USE_SQLITE3
 	void selectROMInArchive();
@@ -106,6 +112,8 @@ public slots:
 	void startVideoLog();
 
 	void openView(QWidget* widget);
+
+	void setFastForwardMute(bool);
 
 #ifdef ENABLE_DEBUGGERS
 	void consoleOpen();
@@ -161,7 +169,6 @@ private:
 	static const int MUST_RESTART_TIMEOUT = 10000;
 
 	void setupPopups();
-	void setupMenu(QMenuBar*);
 	void setupOptions();
 	void openStateWindow(LoadSave);
 
@@ -173,11 +180,6 @@ private:
 	void updateMRU();
 
 	void ensureScripting();
-
-	std::shared_ptr<Action> addGameAction(const QString& visibleName, const QString& name, Action::Function action, const QString& menu = {}, const QKeySequence& = {});
-	template<typename T, typename V> std::shared_ptr<Action> addGameAction(const QString& visibleName, const QString& name, T* obj, V (T::*action)(), const QString& menu = {}, const QKeySequence& = {});
-	template<typename V> std::shared_ptr<Action> addGameAction(const QString& visibleName, const QString& name, V (CoreController::*action)(), const QString& menu = {}, const QKeySequence& = {});
-	std::shared_ptr<Action> addGameAction(const QString& visibleName, const QString& name, Action::BooleanFunction action, const QString& menu = {}, const QKeySequence& = {});
 
 	void updateTitle(float fps = -1);
 
@@ -192,13 +194,7 @@ private:
 	QSize m_savedSize;
 	int m_savedScale;
 
-	// TODO: Move these to a new class
-	ActionMapper m_actions;
-	QList<std::shared_ptr<Action>> m_gameActions;
-	QList<std::shared_ptr<Action>> m_nonMpActions;
-	QMultiMap<mPlatform, std::shared_ptr<Action>> m_platformActions;
-	std::shared_ptr<Action> m_multiWindow;
-	QMap<int, std::shared_ptr<Action>> m_frameSizes;
+	std::unique_ptr<WindowActions> m_actions;
 
 	LogController m_log{0};
 #ifdef ENABLE_DEBUGGERS
@@ -215,7 +211,6 @@ private:
 	QTimer m_mustRestart;
 	QTimer m_mustReset;
 	QStringList m_mruFiles;
-	ShortcutController* m_shortcutController;
 #if defined(BUILD_GL) || defined(BUILD_GLES2)
 	std::unique_ptr<ShaderSelector> m_shaderView;
 #endif
@@ -247,31 +242,6 @@ private:
 #ifdef ENABLE_SCRIPTING
 	std::unique_ptr<ScriptingController> m_scripting;
 #endif
-};
-
-class WindowBackground : public QWidget {
-Q_OBJECT
-
-public:
-	WindowBackground(QWidget* parent = 0);
-
-	void setPixmap(const QPixmap& pixmap);
-	void setSizeHint(const QSize& size);
-	virtual QSize sizeHint() const override;
-	void setDimensions(int width, int height);
-	void setLockIntegerScaling(bool lock);
-	void setLockAspectRatio(bool lock);
-
-	const QPixmap& pixmap() const { return m_pixmap; }
-
-protected:
-	virtual void paintEvent(QPaintEvent*) override;
-
-private:
-	QPixmap m_pixmap;
-	QSize m_sizeHint;
-	int m_aspectWidth;
-	int m_aspectHeight;
 };
 
 }

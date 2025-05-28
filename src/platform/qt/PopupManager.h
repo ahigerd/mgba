@@ -79,6 +79,8 @@ public:
 	operator WINDOW*() const { return d()->ptr; }
 
 	PopupManager& withController(CoreProvider& provider) { d()->setProvider(&provider); return *this; }
+	PopupManager& withController(CoreConsumer& consumer) { d()->setProvider(consumer.coreProvider()); return *this; }
+	PopupManager& withController(CoreConsumer* consumer) { d()->setProvider(consumer->coreProvider()); return *this; }
 	PopupManager& setModal(bool modal) { d()->isModal = modal; return *this; }
 	PopupManager& setKeepAlive(bool keepAlive) { d()->keepAlive = keepAlive; return *this; }
 	PopupManager& constructWithCallback(const std::function<WINDOW*()>& ctor) { d()->construct = ctor; return *this; }
