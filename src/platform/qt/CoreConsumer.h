@@ -60,9 +60,11 @@ public:
 	virtual ~CoreConsumer();
 
 	void setCoreProvider(CoreProvider* provider);
+	inline void setCoreProvider(CoreConsumer* provider) { setCoreProvider(provider->coreProvider()); }
 	inline CoreProvider* coreProvider() const { return m_provider; }
 	CoreController* controller() const;
 	std::shared_ptr<CoreController> sharedController() const;
+	inline operator bool() const { return controller(); }
 
 	ControllerCallback onControllerChanged;
 
@@ -83,7 +85,6 @@ public:
 	CorePointer(T* owner, CoreProvider* provider) : CoreConsumer(provider), m_owner(owner) {}
 	virtual ~CorePointer() = default;
 
-	inline operator bool() const { return controller(); }
 	inline operator std::shared_ptr<CoreController>() const { return sharedController(); }
 	inline CoreController* get() const { return controller(); }
 	inline CoreController* operator->() const { return controller(); }
@@ -93,10 +94,22 @@ public:
 protected:
 	virtual void callControllerChanged(std::shared_ptr<CoreController> oldController) {
 		CoreConsumer::callControllerChanged(oldController);
-		m_owner->setController(oldController);
+		notifyOwner<T>();
 	}
 
 private:
+	template<class U>
+	typename std::enable_if<CoreConsumer::HasSetController<U>::value>::type notifyOwner() {
+		if (get()) {
+			m_owner->setController(sharedController());
+		}
+	}
+
+	template<class U>
+	typename std::enable_if<!CoreConsumer::HasSetController<U>::value>::type notifyOwner() {
+		// Nothing to do
+	}
+
 	T* m_owner;
 };
 
