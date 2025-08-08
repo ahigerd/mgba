@@ -10,22 +10,22 @@
 
 #include <memory>
 
+#include "CorePointer.h"
 #include "ui_PlacementControl.h"
 
 namespace QGBA {
 
 class CoreController;
 
-class PlacementControl : public QDialog {
+class PlacementControl : public QDialog, public CoreConsumer {
 Q_OBJECT
 
 public:
-	PlacementControl(std::shared_ptr<CoreController>, QWidget* parent = nullptr);
+	PlacementControl(CorePointerSource* controller, QWidget* parent = nullptr);
 
 private:
 	void adjustLayer(int layer, int32_t x, int32_t y);
 
-	std::shared_ptr<CoreController> m_controller;
 	QList<QPair<QSpinBox*, QSpinBox*>> m_layers;
 
 	Ui::PlacementControl m_ui;

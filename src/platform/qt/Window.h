@@ -20,13 +20,21 @@
 
 #include "ActionMapper.h"
 #include "CorePointerSource.h"
+#include "DolphinConnector.h"
+#include "FrameView.h"
+#include "GIFView.h"
 #include "InputController.h"
 #include "LoadSaveState.h"
 #include "LogController.h"
-#include "SettingsView.h"
+#include "LogView.h"
+#include "OverrideView.h"
+#include "PopupManager.h"
 #ifdef ENABLE_SCRIPTING
 #include "scripting/ScriptingController.h"
 #endif
+#include "SensorView.h"
+#include "SettingsView.h"
+#include "VideoView.h"
 
 namespace QGBA {
 
@@ -167,6 +175,7 @@ private:
 
 	void setupMenu(QMenuBar*);
 	void setupOptions();
+	void setupPopups();
 	void openStateWindow(LoadSave);
 
 	void attachWidget(QWidget* widget);
@@ -177,11 +186,6 @@ private:
 	void updateMRU();
 
 	void ensureScripting();
-
-	template <typename T, typename... A> std::function<void()> openTView(A... arg);
-	template <typename T, typename... A> std::function<void()> openControllerTView(A... arg);
-	template <typename T, typename... A> std::function<void()> openNamedTView(QPointer<T>*, bool keepalive, A... arg);
-	template <typename T, typename... A> std::function<void()> openNamedControllerTView(QPointer<T>*, bool keepalive, A... arg);
 
 	std::shared_ptr<Action> addGameAction(const QString& visibleName, const QString& name, Action::Function action, const QString& menu = {}, const QKeySequence& = {});
 	template<typename T, typename V> std::shared_ptr<Action> addGameAction(const QString& visibleName, const QString& name, T* obj, V (T::*action)(), const QString& menu = {}, const QKeySequence& = {});
@@ -210,7 +214,7 @@ private:
 	QMap<int, std::shared_ptr<Action>> m_frameSizes;
 
 	LogController m_log{0};
-	LogView* m_logView;
+	PopupManager<LogView> m_logView;
 #ifdef ENABLE_DEBUGGERS
 	DebuggerConsoleController* m_console = nullptr;
 #endif
@@ -244,14 +248,14 @@ private:
 	bool m_multiActive = true;
 	int m_playerId;
 
-	QPointer<OverrideView> m_overrideView;
-	QPointer<SensorView> m_sensorView;
-	QPointer<DolphinConnector> m_dolphinView;
-	QPointer<FrameView> m_frameView;
+	PopupManager<OverrideView> m_overrideView;
+	PopupManager<SensorView> m_sensorView;
+	PopupManager<DolphinConnector> m_dolphinView;
+	PopupManager<FrameView> m_frameView;
 
 #ifdef USE_FFMPEG
-	QPointer<VideoView> m_videoView;
-	QPointer<GIFView> m_gifView;
+	PopupManager<VideoView> m_videoView;
+	PopupManager<GIFView> m_gifView;
 #endif
 
 #ifdef ENABLE_GDB_STUB

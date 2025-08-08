@@ -12,13 +12,14 @@
 
 #include <memory>
 
+#include "CorePointer.h"
 #include "ui_IOViewer.h"
 
 namespace QGBA {
 
 class CoreController;
 
-class IOViewer : public QDialog {
+class IOViewer : public QDialog, public CoreConsumer {
 Q_OBJECT
 
 public:
@@ -42,7 +43,7 @@ public:
 	};
 	typedef QList<RegisterItem> RegisterDescription;
 
-	IOViewer(std::shared_ptr<CoreController> controller, QWidget* parent = nullptr);
+	IOViewer(CorePointerSource* controller, QWidget* parent = nullptr);
 
 	static const QList<RegisterDescription>& registerDescriptions(mPlatform);
 
@@ -69,8 +70,6 @@ private:
 	uint16_t m_value;
 
 	QCheckBox* m_b[16];
-
-	std::shared_ptr<CoreController> m_controller;
 };
 
 }

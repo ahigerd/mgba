@@ -8,6 +8,7 @@
 #include "BattleChipUpdater.h"
 #include "ConfigController.h"
 #include "CoreController.h"
+#include "CorePointerSource.h"
 #include "GBAApp.h"
 #include "ShortcutController.h"
 #include "Window.h"
@@ -22,9 +23,9 @@
 
 using namespace QGBA;
 
-BattleChipView::BattleChipView(std::shared_ptr<CoreController> controller, Window* window, QWidget* parent)
+BattleChipView::BattleChipView(CorePointerSource* controller, Window* window, QWidget* parent)
 	: QDialog(parent, Qt::WindowTitleHint | Qt::WindowSystemMenuHint | Qt::WindowCloseButtonHint)
-	, m_controller(std::move(controller))
+	, CoreConsumer(controller)
 	, m_window(window)
 {
 	m_ui.setupUi(this);

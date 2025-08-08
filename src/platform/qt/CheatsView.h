@@ -11,7 +11,7 @@
 #include <memory>
 
 #include "CheatsModel.h"
-
+#include "CorePointer.h"
 #include "ui_CheatsView.h"
 
 struct mCheatDevice;
@@ -20,11 +20,11 @@ namespace QGBA {
 
 class CoreController;
 
-class CheatsView : public QWidget {
+class CheatsView : public QWidget, public CoreConsumer {
 Q_OBJECT
 
 public:
-	CheatsView(std::shared_ptr<CoreController> controller, QWidget* parent = nullptr);
+	CheatsView(CorePointerSource* controller, QWidget* parent = nullptr);
 
 	virtual bool eventFilter(QObject*, QEvent*) override;
 
@@ -39,7 +39,6 @@ private:
 	void registerCodeType(const QString& label, int type);
 
 	Ui::CheatsView m_ui;
-	std::shared_ptr<CoreController> m_controller;
 	CheatsModel m_model;
 	QButtonGroup* m_typeGroup = nullptr;
 

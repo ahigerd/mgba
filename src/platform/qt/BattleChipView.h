@@ -13,6 +13,7 @@
 
 #include <mgba/core/interface.h>
 
+#include "CorePointer.h"
 #include "ui_BattleChipView.h"
 
 namespace QGBA {
@@ -20,11 +21,11 @@ namespace QGBA {
 class CoreController;
 class Window;
 
-class BattleChipView : public QDialog {
+class BattleChipView : public QDialog, public CoreConsumer {
 Q_OBJECT
 
 public:
-	BattleChipView(std::shared_ptr<CoreController> controller, Window* window, QWidget* parent = nullptr);
+	BattleChipView(CorePointerSource* controller, Window* window, QWidget* parent = nullptr);
 	~BattleChipView();
 
 public slots:
@@ -51,7 +52,6 @@ private:
 	Ui::BattleChipView m_ui;
 
 	BattleChipModel m_model;
-	std::shared_ptr<CoreController> m_controller;
 
 	int m_frameCounter = -1;
 	bool m_next = false;

@@ -11,6 +11,7 @@
 #include "CorePointerSource.h"
 #include "MemoryAccessLogView.h"
 #include "MemoryDump.h"
+#include "PopupManager.h"
 
 #include <mgba/core/core.h>
 
@@ -200,13 +201,10 @@ MemoryView::MemoryView(CorePointerSource* controller, QWidget* parent)
 	connect(m_ui.hexfield, &MemoryModel::selectionChanged, &m_malModel, &MemoryAccessLogModel::updateSelection);
 	connect(m_ui.segments, static_cast<void (QSpinBox::*)(int)>(&QSpinBox::valueChanged),
 	        &m_malModel, &MemoryAccessLogModel::setSegment);
-	connect(m_ui.accessLoggerButton, &QAbstractButton::clicked, this, [this]() {
+	connect(m_ui.accessLoggerButton, &QAbstractButton::clicked, PopupManager<MemoryAccessLogView>().constructWith([this] {
 		std::weak_ptr<MemoryAccessLogController> controller = m_controller->memoryAccessLogController();
-		MemoryAccessLogView* view = new MemoryAccessLogView(controller);
-		connect(m_controller.get(), &CoreController::stopping, view, &QWidget::close);
-		view->setAttribute(Qt::WA_DeleteOnClose);
-		view->show();
-	});
+		return new MemoryAccessLogView(controller);
+	}));
 	m_ui.accessLog->setModel(&m_malModel);
 #else
 	m_ui.accessLog->hide();

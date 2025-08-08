@@ -14,12 +14,13 @@
 namespace QGBA {
 
 class CoreController;
+class CorePointerSource;
 
 class ROMInfo : public QDialog {
 Q_OBJECT
 
 public:
-	ROMInfo(std::shared_ptr<CoreController> controller, QWidget* parent = nullptr);
+	ROMInfo(CorePointerSource* controller, QWidget* parent = nullptr);
 
 private:
 	Ui::ROMInfo m_ui;
