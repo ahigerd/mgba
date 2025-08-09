@@ -39,18 +39,18 @@ SettingsView::SettingsView(ConfigController* controller, InputController* inputC
 {
 	m_ui.setupUi(this);
 
-	m_pageIndex[Page::AV] = 0;
-	m_pageIndex[Page::GAMEPLAY] = 1;
-	m_pageIndex[Page::INTERFACE] = 2;
-	m_pageIndex[Page::UPDATE] = 3;
-	m_pageIndex[Page::EMULATION] = 4;
-	m_pageIndex[Page::ENHANCEMENTS] = 5;
-	m_pageIndex[Page::BIOS] = 6;
-	m_pageIndex[Page::PATHS] = 7;
-	m_pageIndex[Page::LOGGING] = 8;
+	m_pageIndex[SettingsPage::AV] = 0;
+	m_pageIndex[SettingsPage::GAMEPLAY] = 1;
+	m_pageIndex[SettingsPage::INTERFACE] = 2;
+	m_pageIndex[SettingsPage::UPDATE] = 3;
+	m_pageIndex[SettingsPage::EMULATION] = 4;
+	m_pageIndex[SettingsPage::ENHANCEMENTS] = 5;
+	m_pageIndex[SettingsPage::BIOS] = 6;
+	m_pageIndex[SettingsPage::PATHS] = 7;
+	m_pageIndex[SettingsPage::LOGGING] = 8;
 
 #ifdef M_CORE_GB
-	m_pageIndex[Page::GB] = 9;
+	m_pageIndex[SettingsPage::GB] = 9;
 
 	for (auto& model : GameBoy::modelList()) {
 		m_ui.gbModel->addItem(GameBoy::modelName(model), model);
@@ -331,7 +331,7 @@ SettingsView::SettingsView(ConfigController* controller, InputController* inputC
 #endif
 
 	GBAKeyEditor* editor = new GBAKeyEditor(inputController, InputController::KEYBOARD, QString(), this);
-	addPage(tr("Keyboard"), editor, Page::KEYBOARD);
+	addPage(tr("Keyboard"), editor, SettingsPage::KEYBOARD);
 	connect(m_ui.buttonBox, &QDialogButtonBox::accepted, editor, &GBAKeyEditor::save);
 
 	GBAKeyEditor* buttonEditor = nullptr;
@@ -343,7 +343,7 @@ SettingsView::SettingsView(ConfigController* controller, InputController* inputC
 	QString profile = inputController->profileForType(SDL_BINDING_BUTTON);
 	buttonEditor = new GBAKeyEditor(inputController, SDL_BINDING_BUTTON, profile);
 #endif
-	addPage(tr("Controllers"), buttonEditor, Page::CONTROLLERS);
+	addPage(tr("Controllers"), buttonEditor, SettingsPage::CONTROLLERS);
 	connect(m_ui.buttonBox, &QDialogButtonBox::accepted, buttonEditor, &GBAKeyEditor::save);
 #endif
 
@@ -408,14 +408,14 @@ SettingsView::SettingsView(ConfigController* controller, InputController* inputC
 	ShortcutView* shortcutView = new ShortcutView();
 	shortcutView->setController(shortcutController);
 	shortcutView->setInputController(inputController);
-	addPage(tr("Shortcuts"), shortcutView, Page::SHORTCUTS);
+	addPage(tr("Shortcuts"), shortcutView, SettingsPage::SHORTCUTS);
 
 #if defined(BUILD_GLES2) || defined(USE_EPOXY)
 	m_dummyShader = new QLabel(tr("Shaders are not supported when the display driver is not OpenGL.\n\n"
 		"If it is set to OpenGL and you still see this, your graphics card or drivers may be too old."));
 	m_dummyShader->setWordWrap(true);
 	m_dummyShader->setAlignment(Qt::AlignCenter);
-	addPage(tr("Shaders"), m_dummyShader, Page::SHADERS);
+	addPage(tr("Shaders"), m_dummyShader, SettingsPage::SHADERS);
 #endif
 }
 
@@ -442,14 +442,14 @@ void SettingsView::setShaderSelector(ShaderSelector* shaderSelector) {
 	if (shaderSelector) {
 		QObject::connect(this, &SettingsView::saveSettingsRequested, m_shader, &ShaderSelector::saveSettings);
 		QObject::connect(m_ui.buttonBox, &QDialogButtonBox::rejected, m_shader, &ShaderSelector::revert);
-		addPage(tr("Shaders"), m_shader, Page::SHADERS);
+		addPage(tr("Shaders"), m_shader, SettingsPage::SHADERS);
 	} else {
-		addPage(tr("Shaders"), m_dummyShader, Page::SHADERS);
+		addPage(tr("Shaders"), m_dummyShader, SettingsPage::SHADERS);
 	}
 #endif
 }
 
-void SettingsView::selectPage(SettingsView::Page page) {
+void SettingsView::selectPage(SettingsPage page) {
 	m_ui.tabs->setCurrentRow(m_pageIndex[page]);
 }
 
@@ -913,7 +913,7 @@ void SettingsView::updateChecked() {
 	m_ui.lastChecked->setText(tr("%n day(s) ago", nullptr, ago));
 }
 
-void SettingsView::addPage(const QString& name, QWidget* view, Page index) {
+void SettingsView::addPage(const QString& name, QWidget* view, SettingsPage index) {
 	m_pageIndex[index] = m_ui.tabs->count();
 	m_ui.tabs->addItem(name);
 	m_ui.stackedWidget->addWidget(view);

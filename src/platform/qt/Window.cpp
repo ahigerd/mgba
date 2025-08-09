@@ -4,6 +4,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 #include "Window.h"
+#include "Window_p.h"
 
 #include <QKeyEvent>
 #include <QKeySequence>
@@ -59,6 +60,7 @@
 #ifdef ENABLE_SCRIPTING
 #include "scripting/ScriptingView.h"
 #endif
+#include "SettingsView.h"
 #include "ShaderSelector.h"
 #include "ShortcutController.h"
 #include "TileView.h"
@@ -86,14 +88,18 @@
 
 using namespace QGBA;
 
+WindowPrivate::WindowPrivate(Window* p)
+	: inputController(p)
+{}
+
 Window::Window(CoreManager* manager, ConfigController* config, int playerId, QWidget* parent)
 	: QMainWindow(parent)
 	, m_manager(manager)
 	, m_screenWidget(new WindowBackground())
 	, m_config(config)
-	, m_inputController(this)
 	, m_shortcutController(new ShortcutController(this))
 	, m_playerId(playerId)
+	, d(new WindowPrivate(this))
 {
 	setFocusPolicy(Qt::StrongFocus);
 	setAcceptDrops(true);
@@ -161,10 +167,10 @@ Window::Window(CoreManager* manager, ConfigController* config, int playerId, QWi
 
 	connect(&m_fpsTimer, &QTimer::timeout, this, &Window::showFPS);
 	connect(&m_focusCheck, &QTimer::timeout, this, &Window::focusCheck);
-	connect(&m_inputController, &InputController::profileLoaded, m_shortcutController, &ShortcutController::loadProfile);
+	connect(&d->inputController, &InputController::profileLoaded, m_shortcutController, &ShortcutController::loadProfile);
 
-	m_log.setLevels(mLOG_WARN | mLOG_ERROR | mLOG_FATAL);
-	m_log.load(m_config);
+	d->log.setLevels(mLOG_WARN | mLOG_ERROR | mLOG_FATAL);
+	d->log.load(m_config);
 	m_fpsTimer.setInterval(FPS_TIMER_INTERVAL);
 	m_focusCheck.setInterval(200);
 	m_mustRestart.setInterval(MUST_RESTART_TIMEOUT);
@@ -173,13 +179,13 @@ Window::Window(CoreManager* manager, ConfigController* config, int playerId, QWi
 	m_mustReset.setSingleShot(true);
 
 #ifdef BUILD_SDL
-	m_inputController.addInputDriver(std::make_shared<SDLInputDriver>(&m_inputController));
+	d->inputController.addInputDriver(std::make_shared<SDLInputDriver>(&d->inputController));
 #if SDL_VERSION_ATLEAST(2, 0, 0)
-	m_inputController.setGamepadDriver(SDL_BINDING_CONTROLLER);
-	m_inputController.setSensorDriver(SDL_BINDING_CONTROLLER);
+	d->inputController.setGamepadDriver(SDL_BINDING_CONTROLLER);
+	d->inputController.setSensorDriver(SDL_BINDING_CONTROLLER);
 #else
-	m_inputController.setGamepadDriver(SDL_BINDING_BUTTON);
-	m_inputController.setSensorDriver(SDL_BINDING_BUTTON);
+	d->inputController.setGamepadDriver(SDL_BINDING_BUTTON);
+	d->inputController.setSensorDriver(SDL_BINDING_BUTTON);
 #endif
 #endif
 
@@ -296,7 +302,7 @@ void Window::loadConfig() {
 	m_mruFiles = m_config->getMRU();
 	updateMRU();
 
-	m_inputController.setConfiguration(m_config);
+	d->inputController.setConfiguration(m_config);
 
 	if (!m_config->getList("autorunSettings").isEmpty()) {
 		ensureScripting();
@@ -306,7 +312,7 @@ void Window::loadConfig() {
 void Window::reloadConfig() {
 	const mCoreOptions* opts = m_config->options();
 
-	m_log.setLevels(opts->logLevel);
+	d->log.setLevels(opts->logLevel);
 
 	if (m_controller) {
 		m_controller->loadConfig(m_config);
@@ -321,8 +327,12 @@ void Window::reloadConfig() {
 }
 
 void Window::saveConfig() {
-	m_inputController.saveConfiguration();
+	d->inputController.saveConfiguration();
 	m_config->write();
+}
+
+InputController* Window::inputController() {
+	return &d->inputController;
 }
 
 QString Window::getFiltersArchive() const {
@@ -507,7 +517,7 @@ void Window::openView(QWidget* widget) {
 void Window::loadCamImage() {
 	QString filename = GBAApp::app()->getOpenFileName(this, tr("Select image"), tr("Image file (*.png *.gif *.jpg *.jpeg);;All files (*)"));
 	if (!filename.isEmpty()) {
-		m_inputController.loadCamImage(filename);
+		d->inputController.loadCamImage(filename);
 	}
 }
 
@@ -526,11 +536,11 @@ void Window::exportSharkport() {
 }
 
 void Window::openSettingsWindow() {
-	openSettingsWindow(SettingsView::Page::AV);
+	openSettingsWindow(SettingsPage::AV);
 }
 
-void Window::openSettingsWindow(SettingsView::Page page) {
-	SettingsView* settingsWindow = new SettingsView(m_config, &m_inputController, m_shortcutController, &m_log);
+void Window::openSettingsWindow(SettingsPage page) {
+	SettingsView* settingsWindow = new SettingsView(m_config, &d->inputController, m_shortcutController, &d->log);
 #if defined(BUILD_GL) || defined(BUILD_GLES2)
 	if (m_display->supportsShaders()) {
 		settingsWindow->setShaderSelector(m_shaderView.get());
@@ -539,7 +549,7 @@ void Window::openSettingsWindow(SettingsView::Page page) {
 	connect(settingsWindow, &SettingsView::displayDriverChanged, this, &Window::reloadDisplayDriver);
 	connect(settingsWindow, &SettingsView::audioDriverChanged, this, &Window::reloadAudioDriver);
 	connect(settingsWindow, &SettingsView::cameraDriverChanged, this, &Window::mustReset);
-	connect(settingsWindow, &SettingsView::cameraChanged, &m_inputController, &InputController::setCamera);
+	connect(settingsWindow, &SettingsView::cameraChanged, &d->inputController, &InputController::setCamera);
 	connect(settingsWindow, &SettingsView::videoRendererChanged, this, &Window::changeRenderer);
 	connect(settingsWindow, &SettingsView::languageChanged, this, &Window::mustRestart);
 	connect(settingsWindow, &SettingsView::pathsChanged, this, &Window::reloadConfig);
@@ -549,7 +559,7 @@ void Window::openSettingsWindow(SettingsView::Page page) {
 #ifdef ENABLE_SCRIPTING
 	connect(settingsWindow, &SettingsView::openAutorunScripts, this, [this]() {
 		ensureScripting();
-		m_scripting->openAutorunEdit();
+		d->scripting->openAutorunEdit();
 	});
 #endif
 	connect(this, &Window::shaderSelectorAdded, settingsWindow, &SettingsView::setShaderSelector);
@@ -592,7 +602,7 @@ void Window::consoleOpen() {
 #ifdef ENABLE_SCRIPTING
 void Window::scriptingOpen() {
 	ensureScripting();
-	ScriptingView* view = new ScriptingView(m_scripting.get(), m_config);
+	ScriptingView* view = new ScriptingView(d->scripting.get(), m_config);
 	openView(view);
 }
 #endif
@@ -602,7 +612,7 @@ void Window::keyPressEvent(QKeyEvent* event) {
 		QWidget::keyPressEvent(event);
 		return;
 	}
-	int key = m_inputController.mapKeyboard(event->key());
+	int key = d->inputController.mapKeyboard(event->key());
 	if (key == -1) {
 		QWidget::keyPressEvent(event);
 		return;
@@ -618,7 +628,7 @@ void Window::keyReleaseEvent(QKeyEvent* event) {
 		QWidget::keyReleaseEvent(event);
 		return;
 	}
-	int key = m_inputController.mapKeyboard(event->key());
+	int key = d->inputController.mapKeyboard(event->key());
 	if (key == -1) {
 		QWidget::keyPressEvent(event);
 		return;
@@ -932,8 +942,8 @@ void Window::gameStopped() {
 	if (m_pendingClose) {
 #ifdef ENABLE_SCRIPTING
 		std::shared_ptr<VideoProxy> proxy = m_display->videoProxy();
-		if (m_scripting && proxy) {
-			m_scripting->setVideoBackend(nullptr);
+		if (d->scripting && proxy) {
+			d->scripting->setVideoBackend(nullptr);
 		}
 #endif
 		m_display.reset();
@@ -987,8 +997,8 @@ void Window::reloadDisplayDriver() {
 		detachWidget();
 	}
 #ifdef ENABLE_SCRIPTING
-	if (m_scripting) {
-		m_scripting->setVideoBackend(nullptr);
+	if (d->scripting) {
+		d->scripting->setVideoBackend(nullptr);
 	}
 #endif
 	std::shared_ptr<VideoProxy> proxy;
@@ -1051,8 +1061,8 @@ void Window::reloadDisplayDriver() {
 	}
 	m_display->setVideoProxy(std::move(proxy));
 #ifdef ENABLE_SCRIPTING
-	if (m_scripting) {
-		m_scripting->setVideoBackend(m_display->videoBackend());
+	if (d->scripting) {
+		d->scripting->setVideoBackend(m_display->videoBackend());
 	}
 #endif
 }
@@ -1362,7 +1372,7 @@ void Window::setupMenu(QMenuBar* menubar) {
 	m_multiWindow = m_actions.addAction(tr("New multiplayer window"), "multiWindow", GBAApp::app(), &GBAApp::newWindow, "file");
 
 #ifdef M_CORE_GBA
-	auto dolphin = m_actions.addAction(tr("Connect to Dolphin..."), "connectDolphin", m_dolphinView, "file");
+	auto dolphin = m_actions.addAction(tr("Connect to Dolphin..."), "connectDolphin", d->dolphinView, "file");
 	m_platformActions.insert(mPLATFORM_GBA, dolphin);
 #endif
 
@@ -1461,19 +1471,19 @@ void Window::setupMenu(QMenuBar* menubar) {
 	m_actions.addSeparator("emu");
 
 	m_actions.addMenu(tr("Solar sensor"), "solar", "emu");
-	m_actions.addAction(tr("Increase solar level"), "increaseLuminanceLevel", &m_inputController, &InputController::increaseLuminanceLevel, "solar");
-	m_actions.addAction(tr("Decrease solar level"), "decreaseLuminanceLevel", &m_inputController, &InputController::decreaseLuminanceLevel, "solar");
+	m_actions.addAction(tr("Increase solar level"), "increaseLuminanceLevel", &d->inputController, &InputController::increaseLuminanceLevel, "solar");
+	m_actions.addAction(tr("Decrease solar level"), "decreaseLuminanceLevel", &d->inputController, &InputController::decreaseLuminanceLevel, "solar");
 	m_actions.addAction(tr("Brightest solar level"), "maxLuminanceLevel", [this]() {
-		m_inputController.setLuminanceLevel(10);
+		d->inputController.setLuminanceLevel(10);
 	}, "solar");
 	m_actions.addAction(tr("Darkest solar level"), "minLuminanceLevel", [this]() {
-		m_inputController.setLuminanceLevel(0);
+		d->inputController.setLuminanceLevel(0);
 	}, "solar");
 
 	m_actions.addSeparator("solar");
 	for (int i = 0; i <= 10; ++i) {
 		m_actions.addAction(tr("Brightness %1").arg(QString::number(i)), QString("luminanceLevel.%1").arg(QString::number(i)), [this, i]() {
-			m_inputController.setLuminanceLevel(i);
+			d->inputController.setLuminanceLevel(i);
 		}, "solar");
 	}
 
@@ -1642,8 +1652,8 @@ void Window::setupMenu(QMenuBar* menubar) {
 #endif
 
 #ifdef USE_FFMPEG
-	addGameAction(tr("Record A/V..."), "recordOutput", m_videoView, "av");
-	addGameAction(tr("Record GIF/WebP/APNG..."), "recordGIF", m_gifView, "av");
+	addGameAction(tr("Record A/V..."), "recordOutput", d->videoView, "av");
+	addGameAction(tr("Record GIF/WebP/APNG..."), "recordGIF", d->gifView, "av");
 #endif
 
 	m_actions.addSeparator("av");
@@ -1653,9 +1663,9 @@ void Window::setupMenu(QMenuBar* menubar) {
 	addGameAction(tr("Adjust layer placement..."), "placementControl", PopupManager<PlacementControl>(m_controller), "av");
 
 	m_actions.addMenu(tr("&Tools"), "tools");
-	m_actions.addAction(tr("View &logs..."), "viewLogs", m_logView, "tools");
-	m_actions.addAction(tr("Game &overrides..."), "overrideWindow", m_overrideView, "tools");
-	m_actions.addAction(tr("Game Pak sensors..."), "sensorWindow", m_sensorView, "tools");
+	m_actions.addAction(tr("View &logs..."), "viewLogs", d->logView, "tools");
+	m_actions.addAction(tr("Game &overrides..."), "overrideWindow", d->overrideView, "tools");
+	m_actions.addAction(tr("Game Pak sensors..."), "sensorWindow", d->sensorView, "tools");
 
 	addGameAction(tr("&Cheats..."), "cheatsWindow", PopupManager<CheatsView>(m_controller), "tools");
 #ifdef ENABLE_SCRIPTING
@@ -1685,7 +1695,7 @@ void Window::setupMenu(QMenuBar* menubar) {
 	addGameAction(tr("View &sprites..."), "spriteWindow", PopupManager<ObjView>(m_controller), "stateViews");
 	addGameAction(tr("View &tiles..."), "tileWindow", PopupManager<TileView>(m_controller), "stateViews");
 	addGameAction(tr("View &map..."), "mapWindow", PopupManager<MapView>(m_controller), "stateViews");
-	addGameAction(tr("&Frame inspector..."), "frameWindow", m_frameView, "stateViews");
+	addGameAction(tr("&Frame inspector..."), "frameWindow", d->frameView, "stateViews");
 	addGameAction(tr("View memory..."), "memoryView", PopupManager<MemoryView>(m_controller), "stateViews");
 	addGameAction(tr("Search memory..."), "memorySearch", PopupManager<MemorySearch>(m_controller), "stateViews");
 	addGameAction(tr("View &I/O registers..."), "ioViewer", PopupManager<IOViewer>(m_controller), "stateViews");
@@ -1895,8 +1905,8 @@ void Window::setupOptions() {
 		if (m_display) {
 			m_display->setVideoScale(value.toInt());
 #ifdef ENABLE_SCRIPTING
-			if (m_controller && m_scripting) {
-				m_scripting->updateVideoScale();
+			if (m_controller && d->scripting) {
+				d->scripting->updateVideoScale();
 			}
 #endif
 		}
@@ -1922,14 +1932,16 @@ void Window::setupOptions() {
 }
 
 void Window::setupPopups() {
-	m_logView.constructWith(&m_log, this);
-	m_overrideView.constructWith(&m_controller, m_config, this);
+	d->logView.constructWith(&d->log, this);
+	d->overrideView.constructWith(&m_controller, m_config, this);
 	// Is there a reason for SensorView to be keepalive?
-	m_sensorView.constructWith(&m_controller, &m_inputController, this).setKeepAlive(true);
-	m_dolphinView.constructWith(this).setKeepAlive(true);
+	d->sensorView.constructWith(&m_controller, &d->inputController, this).setKeepAlive(true);
+#ifdef M_CORE_GBA
+	d->dolphinView.constructWith(this).setKeepAlive(true);
+#endif
 #ifdef USE_FFMPEG
-	m_videoView.constructWith(&m_controller).setKeepAlive(true);
-	m_gifView.constructWith(&m_controller).setKeepAlive(true);
+	d->videoView.constructWith(&m_controller).setKeepAlive(true);
+	d->gifView.constructWith(&m_controller).setKeepAlive(true);
 #endif
 }
 
@@ -1986,21 +1998,21 @@ void Window::updateMRU() {
 
 void Window::ensureScripting() {
 #ifdef ENABLE_SCRIPTING
-	if (m_scripting) {
+	if (d->scripting) {
 		return;
 	}
-	m_scripting = std::make_unique<ScriptingController>(m_config);
-	m_scripting->setInputController(&m_inputController);
-	m_shortcutController->setScriptingController(m_scripting.get());
+	d->scripting = std::make_unique<ScriptingController>(m_config);
+	d->scripting->setInputController(&d->inputController);
+	m_shortcutController->setScriptingController(d->scripting.get());
 	if (m_controller) {
-		m_display->installEventFilter(m_scripting.get());
+		m_display->installEventFilter(d->scripting.get());
 	}
 
 	if (m_display) {
-		m_scripting->setVideoBackend(m_display->videoBackend());
+		d->scripting->setVideoBackend(m_display->videoBackend());
 	}
 
-	connect(m_scripting.get(), &ScriptingController::autorunScriptsOpened, this, &Window::openView);
+	connect(d->scripting.get(), &ScriptingController::autorunScriptsOpened, this, &Window::openView);
 #endif
 }
 
@@ -2094,8 +2106,8 @@ void Window::setController(CoreController* controller, const QString& fname) {
 		reloadDisplayDriver();
 	}
 
-	controller->setInputController(&m_inputController);
-	controller->setLogger(&m_log);
+	controller->setInputController(&d->inputController);
+	controller->setLogger(&d->log);
 	m_controller = std::shared_ptr<CoreController>(controller);
 
 	connect(this, &Window::shutdown, [this]() {
@@ -2153,8 +2165,8 @@ void Window::setController(CoreController* controller, const QString& fname) {
 	}
 
 #ifdef ENABLE_SCRIPTING
-	if (m_scripting) {
-		m_scripting->setVideoBackend(m_display->videoBackend());
+	if (d->scripting) {
+		d->scripting->setVideoBackend(m_display->videoBackend());
 	}
 #endif
 
@@ -2176,12 +2188,12 @@ void Window::setController(CoreController* controller, const QString& fname) {
 	}
 
 #ifdef ENABLE_SCRIPTING
-	if (!m_scripting) {
+	if (!d->scripting) {
 		QStringList scripts = m_config->getArgvOption("script").toStringList();
 		if (!scripts.isEmpty()) {
 			scriptingOpen();
 			for (const auto& scriptPath : scripts) {
-				m_scripting->loadFile(scriptPath);
+				d->scripting->loadFile(scriptPath);
 			}
 		}
 	}
@@ -2199,8 +2211,8 @@ void Window::attachDisplay() {
 	m_display->startDrawing(m_controller);
 
 #ifdef ENABLE_SCRIPTING
-	if (m_scripting) {
-		m_display->installEventFilter(m_scripting.get());
+	if (d->scripting) {
+		m_display->installEventFilter(d->scripting.get());
 	}
 #endif
 }
