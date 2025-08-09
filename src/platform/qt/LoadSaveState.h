@@ -9,6 +9,7 @@
 
 #include <memory>
 
+#include "Constants.h"
 #include "ui_LoadSaveState.h"
 
 namespace QGBA {
@@ -16,11 +17,6 @@ namespace QGBA {
 class CoreController;
 class InputController;
 class SavestateButton;
-
-enum class LoadSave {
-	LOAD,
-	SAVE
-};
 
 class LoadSaveState : public QWidget {
 Q_OBJECT

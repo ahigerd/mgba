@@ -20,6 +20,7 @@
 
 #include "CoreController.h"
 #include "GBAApp.h"
+#include "InputController.h"
 #include "Window.h"
 
 #include "ui_ReportView.h"

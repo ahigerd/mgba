@@ -11,6 +11,7 @@
 #include <QTimer>
 
 #include "ColorPicker.h"
+#include "Constants.h"
 #include "LogConfigModel.h"
 #include "ShaderSelector.h"
 
@@ -32,23 +33,6 @@ class SettingsView : public QDialog {
 Q_OBJECT
 
 public:
-	enum class Page {
-		AV,
-		INTERFACE,
-		GAMEPLAY,
-		UPDATE,
-		EMULATION,
-		ENHANCEMENTS,
-		BIOS,
-		PATHS,
-		LOGGING,
-		GB,
-		KEYBOARD,
-		CONTROLLERS,
-		SHORTCUTS,
-		SHADERS,
-	};
-
 	SettingsView(ConfigController* controller, InputController* inputController, ShortcutController* shortcutController, LogController* logController, QWidget* parent = nullptr);
 	~SettingsView();
 
@@ -66,7 +50,7 @@ signals:
 	void openAutorunScripts();
 
 public slots:
-	void selectPage(Page);
+	void selectPage(SettingsPage);
 	void setShaderSelector(ShaderSelector* shaderSelector);
 
 private slots:
@@ -92,11 +76,11 @@ private:
 	ColorPicker m_colorPickers[12];
 #endif
 
-	QMap<Page, int> m_pageIndex;
+	QMap<SettingsPage, int> m_pageIndex;
 
 	QString makePortablePath(const QString& path);
 
-	void addPage(const QString& name, QWidget* view, Page index);
+	void addPage(const QString& name, QWidget* view, SettingsPage index);
 
 	void saveSetting(const char* key, const QAbstractButton*);
 	void saveSetting(const char* key, const QComboBox*);

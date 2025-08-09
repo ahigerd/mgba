@@ -5,11 +5,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 #pragma once
 
-#include <QAction>
-#include <QDateTime>
 #include <QElapsedTimer>
 #include <QList>
 #include <QMainWindow>
+#include <QMultiMap>
 #include <QTimer>
 
 #include <functional>
@@ -19,22 +18,8 @@
 #include <mgba/core/thread.h>
 
 #include "ActionMapper.h"
+#include "Constants.h"
 #include "CorePointerSource.h"
-#include "DolphinConnector.h"
-#include "FrameView.h"
-#include "GIFView.h"
-#include "InputController.h"
-#include "LoadSaveState.h"
-#include "LogController.h"
-#include "LogView.h"
-#include "OverrideView.h"
-#include "PopupManager.h"
-#ifdef ENABLE_SCRIPTING
-#include "scripting/ScriptingController.h"
-#endif
-#include "SensorView.h"
-#include "SettingsView.h"
-#include "VideoView.h"
 
 namespace QGBA {
 
@@ -44,18 +29,14 @@ class CoreController;
 class CoreManager;
 class DebuggerConsoleController;
 class Display;
-class DolphinConnector;
-class FrameView;
 class GDBController;
-class GIFView;
+class InputController;
 class LibraryController;
-class LogView;
-class OverrideView;
-class SensorView;
+class LoadSaveState;
 class ShaderSelector;
 class ShortcutController;
-class VideoView;
 class WindowBackground;
+class WindowPrivate;
 
 class Window : public QMainWindow {
 Q_OBJECT
@@ -76,7 +57,7 @@ public:
 	void updateMultiplayerStatus(bool canOpenAnother);
 	void updateMultiplayerActive(bool active);
 
-	InputController* inputController() { return &m_inputController; }
+	InputController* inputController();
 
 signals:
 	void startDrawing();
@@ -114,7 +95,7 @@ public slots:
 	void exportSharkport();
 
 	void openSettingsWindow();
-	void openSettingsWindow(SettingsView::Page);
+	void openSettingsWindow(SettingsPage);
 
 	void startVideoLog();
 
@@ -213,8 +194,6 @@ private:
 	std::shared_ptr<Action> m_multiWindow;
 	QMap<int, std::shared_ptr<Action>> m_frameSizes;
 
-	LogController m_log{0};
-	PopupManager<LogView> m_logView;
 #ifdef ENABLE_DEBUGGERS
 	DebuggerConsoleController* m_console = nullptr;
 #endif
@@ -222,7 +201,6 @@ private:
 	WindowBackground* m_screenWidget;
 	QPixmap m_logo{":/res/mgba-1024.png"};
 	ConfigController* m_config;
-	InputController m_inputController;
 	QList<qint64> m_frameList;
 	QElapsedTimer m_frameTimer;
 	QTimer m_fpsTimer;
@@ -248,16 +226,6 @@ private:
 	bool m_multiActive = true;
 	int m_playerId;
 
-	PopupManager<OverrideView> m_overrideView;
-	PopupManager<SensorView> m_sensorView;
-	PopupManager<DolphinConnector> m_dolphinView;
-	PopupManager<FrameView> m_frameView;
-
-#ifdef USE_FFMPEG
-	PopupManager<VideoView> m_videoView;
-	PopupManager<GIFView> m_gifView;
-#endif
-
 #ifdef ENABLE_GDB_STUB
 	GDBController* m_gdbController = nullptr;
 #endif
@@ -266,34 +234,7 @@ private:
 	LibraryController* m_libraryView;
 #endif
 
-#ifdef ENABLE_SCRIPTING
-	std::unique_ptr<ScriptingController> m_scripting;
-#endif
-};
-
-class WindowBackground : public QWidget {
-Q_OBJECT
-
-public:
-	WindowBackground(QWidget* parent = 0);
-
-	void setPixmap(const QPixmap& pixmap);
-	void setSizeHint(const QSize& size);
-	virtual QSize sizeHint() const override;
-	void setDimensions(int width, int height);
-	void setLockIntegerScaling(bool lock);
-	void setLockAspectRatio(bool lock);
-
-	const QPixmap& pixmap() const { return m_pixmap; }
-
-protected:
-	virtual void paintEvent(QPaintEvent*) override;
-
-private:
-	QPixmap m_pixmap;
-	QSize m_sizeHint;
-	int m_aspectWidth;
-	int m_aspectHeight;
+	std::unique_ptr<WindowPrivate> d;
 };
 
 }
