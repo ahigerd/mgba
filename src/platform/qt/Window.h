@@ -101,14 +101,6 @@ public slots:
 
 	void openView(QWidget* widget);
 
-#ifdef ENABLE_DEBUGGERS
-	void consoleOpen();
-#endif
-
-#ifdef ENABLE_GDB_STUB
-	void gdbOpen();
-#endif
-
 #ifdef ENABLE_SCRIPTING
 	void scriptingOpen();
 #endif

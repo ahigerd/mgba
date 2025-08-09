@@ -16,9 +16,14 @@
 #include "OverrideView.h"
 #include "PopupManager.h"
 #include "SensorView.h"
+#include "SettingsView.h"
 
 #ifdef M_CORE_GBA
 #include "DolphinConnector.h"
+#endif
+
+#ifdef ENABLE_DEBUGGERS
+#include "DebuggerConsole.h"
 #endif
 
 #ifdef USE_FFMPEG
@@ -41,6 +46,8 @@ public:
 	InputController inputController;
 	LogController log{0};
 
+	PopupManager<SettingsView> settingsView;
+	PopupManager<DebuggerConsole> consoleView;
 	PopupManager<LogView> logView;
 	PopupManager<OverrideView> overrideView;
 	PopupManager<SensorView> sensorView;

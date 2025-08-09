@@ -228,7 +228,7 @@ void Window::argumentsPassed() {
 
 #ifdef ENABLE_DEBUGGERS
 	if (args->debugCli) {
-		consoleOpen();
+		d->consoleView();
 	}
 #endif
 
@@ -540,31 +540,8 @@ void Window::openSettingsWindow() {
 }
 
 void Window::openSettingsWindow(SettingsPage page) {
-	SettingsView* settingsWindow = new SettingsView(m_config, &d->inputController, m_shortcutController, &d->log);
-#if defined(BUILD_GL) || defined(BUILD_GLES2)
-	if (m_display->supportsShaders()) {
-		settingsWindow->setShaderSelector(m_shaderView.get());
-	}
-#endif
-	connect(settingsWindow, &SettingsView::displayDriverChanged, this, &Window::reloadDisplayDriver);
-	connect(settingsWindow, &SettingsView::audioDriverChanged, this, &Window::reloadAudioDriver);
-	connect(settingsWindow, &SettingsView::cameraDriverChanged, this, &Window::mustReset);
-	connect(settingsWindow, &SettingsView::cameraChanged, &d->inputController, &InputController::setCamera);
-	connect(settingsWindow, &SettingsView::videoRendererChanged, this, &Window::changeRenderer);
-	connect(settingsWindow, &SettingsView::languageChanged, this, &Window::mustRestart);
-	connect(settingsWindow, &SettingsView::pathsChanged, this, &Window::reloadConfig);
-#ifdef USE_SQLITE3
-	connect(settingsWindow, &SettingsView::libraryCleared, m_libraryView, &LibraryController::clear);
-#endif
-#ifdef ENABLE_SCRIPTING
-	connect(settingsWindow, &SettingsView::openAutorunScripts, this, [this]() {
-		ensureScripting();
-		d->scripting->openAutorunEdit();
-	});
-#endif
-	connect(this, &Window::shaderSelectorAdded, settingsWindow, &SettingsView::setShaderSelector);
-	openView(settingsWindow);
-	settingsWindow->selectPage(page);
+	d->settingsView();
+	d->settingsView->selectPage(page);
 }
 
 void Window::startVideoLog() {
@@ -573,31 +550,6 @@ void Window::startVideoLog() {
 		m_controller->startVideoLog(filename);
 	}
 }
-
-#ifdef ENABLE_GDB_STUB
-void Window::gdbOpen() {
-	if (!m_gdbController) {
-		m_gdbController = new GDBController(this);
-	}
-	GDBWindow* window = new GDBWindow(m_gdbController);
-	m_gdbController->setCoreSource(&m_controller);
-	connect(m_controller.get(), &CoreController::stopping, window, &QWidget::close);
-	openView(window);
-}
-#endif
-
-#ifdef ENABLE_DEBUGGERS
-void Window::consoleOpen() {
-	if (!m_console) {
-		m_console = new DebuggerConsoleController(this);
-	}
-	DebuggerConsole* window = new DebuggerConsole(m_console);
-	if (m_controller) {
-		m_console->setCoreSource(&m_controller);
-	}
-	openView(window);
-}
-#endif
 
 #ifdef ENABLE_SCRIPTING
 void Window::scriptingOpen() {
@@ -1675,14 +1627,19 @@ void Window::setupMenu(QMenuBar* menubar) {
 	m_actions.addAction(tr("Create forwarder..."), "createForwarder", PopupManager<ForwarderView>(), "tools");
 
 	m_actions.addSeparator("tools");
-	m_actions.addAction(tr("Settings..."), "settings", this, &Window::openSettingsWindow, "tools")->setRole(Action::Role::SETTINGS);
+	m_actions.addAction(tr("Settings..."), "settings", d->settingsView, "tools")->setRole(Action::Role::SETTINGS);
 	m_actions.addAction(tr("Make portable"), "makePortable", this, &Window::tryMakePortable, "tools");
 
 	m_actions.addSeparator("tools");
 #ifdef ENABLE_DEBUGGERS
-	m_actions.addAction(tr("Open debugger console..."), "debuggerWindow", this, &Window::consoleOpen, "tools");
+	m_actions.addAction(tr("Open debugger console..."), "debuggerWindow", d->consoleView, "tools");
 #ifdef ENABLE_GDB_STUB
-	auto gdbWindow = addGameAction(tr("Start &GDB server..."), "gdbWindow", this, &Window::gdbOpen, "tools");
+	auto gdbWindow = addGameAction(tr("Start &GDB server..."), "gdbWindow", PopupManager<GDBWindow>().constructWith([this]() {
+		if (!m_gdbController) {
+			m_gdbController = new GDBController(this);
+		}
+		return new GDBWindow(m_gdbController);
+	}), "tools");
 	m_platformActions.insert(mPLATFORM_GBA, gdbWindow);
 #endif
 #endif
@@ -1943,6 +1900,42 @@ void Window::setupPopups() {
 	d->videoView.constructWith(&m_controller).setKeepAlive(true);
 	d->gifView.constructWith(&m_controller).setKeepAlive(true);
 #endif
+#ifdef ENABLE_DEBUGGERS
+	d->consoleView.constructWith([this]() {
+		if (!m_console) {
+			m_console = new DebuggerConsoleController(this);
+			m_console->setCoreSource(&m_controller);
+		}
+		return new DebuggerConsole(m_console);
+	});
+#endif
+
+	d->settingsView.constructWith([this]() {
+		SettingsView* settingsWindow = new SettingsView(m_config, inputController(), m_shortcutController, &d->log);
+#if defined(BUILD_GL) || defined(BUILD_GLES2)
+		if (m_display->supportsShaders()) {
+			settingsWindow->setShaderSelector(m_shaderView.get());
+		}
+#endif
+		connect(settingsWindow, &SettingsView::displayDriverChanged, this, &Window::reloadDisplayDriver);
+		connect(settingsWindow, &SettingsView::audioDriverChanged, this, &Window::reloadAudioDriver);
+		connect(settingsWindow, &SettingsView::cameraDriverChanged, this, &Window::mustReset);
+		connect(settingsWindow, &SettingsView::cameraChanged, inputController(), &InputController::setCamera);
+		connect(settingsWindow, &SettingsView::videoRendererChanged, this, &Window::changeRenderer);
+		connect(settingsWindow, &SettingsView::languageChanged, this, &Window::mustRestart);
+		connect(settingsWindow, &SettingsView::pathsChanged, this, &Window::reloadConfig);
+#ifdef USE_SQLITE3
+		connect(settingsWindow, &SettingsView::libraryCleared, m_libraryView, &LibraryController::clear);
+#endif
+#ifdef ENABLE_SCRIPTING
+		connect(settingsWindow, &SettingsView::openAutorunScripts, this, [this]() {
+			ensureScripting();
+			d->scripting->openAutorunEdit();
+		});
+#endif
+		connect(this, &Window::shaderSelectorAdded, settingsWindow, &SettingsView::setShaderSelector);
+		return settingsWindow;
+	});
 }
 
 void Window::attachWidget(QWidget* widget) {
