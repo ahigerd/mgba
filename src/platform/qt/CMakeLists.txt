@@ -155,6 +155,7 @@ set(SOURCE_FILES
 	OverrideView.cpp
 	PaletteView.cpp
 	PlacementControl.cpp
+	PopupManager.cpp
 	RegisterView.cpp
 	ReportView.cpp
 	ROMInfo.cpp

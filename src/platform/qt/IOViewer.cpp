@@ -6,6 +6,7 @@
 #include "IOViewer.h"
 
 #include "CoreController.h"
+#include "CorePointerSource.h"
 #include "GBAApp.h"
 
 #include <QComboBox>
@@ -1560,14 +1561,14 @@ const QList<IOViewer::RegisterDescription>& IOViewer::registerDescriptions(mPlat
 	return s_registers[platform];
 }
 
-IOViewer::IOViewer(std::shared_ptr<CoreController> controller, QWidget* parent)
+IOViewer::IOViewer(CorePointerSource* controller, QWidget* parent)
 	: QDialog(parent, Qt::WindowTitleHint | Qt::WindowSystemMenuHint | Qt::WindowCloseButtonHint)
-	, m_controller(controller)
+	, CoreConsumer(controller)
 {
 	m_ui.setupUi(this);
 	const char* const* regs;
 	unsigned maxRegs;
-	switch (controller->platform()) {
+	switch (m_controller->platform()) {
 #ifdef M_CORE_GB
 	case mPLATFORM_GB:
 		regs = GBIORegisterNames;

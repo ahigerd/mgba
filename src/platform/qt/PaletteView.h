@@ -9,6 +9,7 @@
 
 #include <memory>
 
+#include "CorePointer.h"
 #include "Swatch.h"
 
 #include "ui_PaletteView.h"
@@ -18,11 +19,11 @@ namespace QGBA {
 class CoreController;
 class Swatch;
 
-class PaletteView : public QWidget {
+class PaletteView : public QWidget, public CoreConsumer {
 Q_OBJECT
 
 public:
-	PaletteView(std::shared_ptr<CoreController> controller, QWidget* parent = nullptr);
+	PaletteView(CorePointerSource* controller, QWidget* parent = nullptr);
 
 public slots:
 	void updatePalette();
@@ -34,8 +35,6 @@ private:
 	void exportPalette(int start, int length);
 
 	Ui::PaletteView m_ui;
-
-	std::shared_ptr<CoreController> m_controller;
 };
 
 }

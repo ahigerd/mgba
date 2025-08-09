@@ -5,8 +5,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 #include "CheatsView.h"
 
-#include "GBAApp.h"
 #include "CoreController.h"
+#include "CorePointerSource.h"
+#include "GBAApp.h"
 #include "LogController.h"
 
 #include <QBoxLayout>
@@ -25,10 +26,10 @@
 
 using namespace QGBA;
 
-CheatsView::CheatsView(std::shared_ptr<CoreController> controller, QWidget* parent)
+CheatsView::CheatsView(CorePointerSource* controller, QWidget* parent)
 	: QWidget(parent)
-	, m_controller(controller)
-	, m_model(controller->cheatDevice())
+	, CoreConsumer(controller)
+	, m_model(m_controller->cheatDevice())
 {
 	m_ui.setupUi(this);
 
@@ -41,9 +42,9 @@ CheatsView::CheatsView(std::shared_ptr<CoreController> controller, QWidget* pare
 	connect(m_ui.addSet, &QAbstractButton::clicked, this, &CheatsView::addSet);
 	connect(m_ui.remove, &QAbstractButton::clicked, this, &CheatsView::removeSet);
 	connect(m_ui.add, &QAbstractButton::clicked, this, &CheatsView::enterCheat);
-	connect(controller.get(), &CoreController::stateLoaded, &m_model, &CheatsModel::invalidated);
+	connect(m_controller.get(), &CoreController::stateLoaded, &m_model, &CheatsModel::invalidated);
 
-	switch (controller->platform()) {
+	switch (m_controller->platform()) {
 #ifdef M_CORE_GBA
 	case mPLATFORM_GBA:
 		registerCodeType(tr("Autodetect (recommended)"), GBA_CHEAT_AUTODETECT);

@@ -6,6 +6,7 @@
 #include "PlacementControl.h"
 
 #include "CoreController.h"
+#include "CorePointerSource.h"
 
 #include <QGridLayout>
 
@@ -13,9 +14,9 @@
 
 using namespace QGBA;
 
-PlacementControl::PlacementControl(std::shared_ptr<CoreController> controller, QWidget* parent)
+PlacementControl::PlacementControl(CorePointerSource* controller, QWidget* parent)
 	: QDialog(parent, Qt::WindowTitleHint | Qt::WindowSystemMenuHint | Qt::WindowCloseButtonHint)
-	, m_controller(std::move(controller))
+	, CoreConsumer(controller)
 {
 	m_ui.setupUi(this);
 

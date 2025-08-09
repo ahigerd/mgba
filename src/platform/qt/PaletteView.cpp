@@ -24,18 +24,18 @@
 
 using namespace QGBA;
 
-PaletteView::PaletteView(std::shared_ptr<CoreController> controller, QWidget* parent)
+PaletteView::PaletteView(CorePointerSource* controller, QWidget* parent)
 	: QWidget(parent)
-	, m_controller(controller)
+	, CoreConsumer(controller)
 {
 	m_ui.setupUi(this);
 
-	connect(controller.get(), &CoreController::frameAvailable, this, &PaletteView::updatePalette);
+	connect(m_controller.get(), &CoreController::frameAvailable, this, &PaletteView::updatePalette);
 	m_ui.bgGrid->setDimensions(QSize(16, 16));
 	m_ui.objGrid->setDimensions(QSize(16, 16));
 	int count = 256;
 #ifdef M_CORE_GB
-	if (controller->platform() == mPLATFORM_GB) {
+	if (m_controller->platform() == mPLATFORM_GB) {
 		m_ui.bgGrid->setDimensions(QSize(4, 8));
 		m_ui.objGrid->setDimensions(QSize(4, 8));
 		m_ui.bgGrid->setSize(24);

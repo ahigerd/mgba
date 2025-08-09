@@ -7,6 +7,7 @@
 
 #include "GBAApp.h"
 #include "CoreController.h"
+#include "CorePointerSource.h"
 
 #include <mgba/core/core.h>
 #ifdef USE_SQLITE3
@@ -24,7 +25,7 @@ template<size_t N> bool isZeroed(const uint8_t* mem) {
 	return true;
 }
 
-ROMInfo::ROMInfo(std::shared_ptr<CoreController> controller, QWidget* parent)
+ROMInfo::ROMInfo(CorePointerSource* controller, QWidget* parent)
 	: QDialog(parent, Qt::WindowTitleHint | Qt::WindowSystemMenuHint | Qt::WindowCloseButtonHint)
 {
 	m_ui.setupUi(this);
@@ -36,8 +37,8 @@ ROMInfo::ROMInfo(std::shared_ptr<CoreController> controller, QWidget* parent)
 	uint8_t md5[16]{};
 	uint8_t sha1[20]{};
 
-	CoreController::Interrupter interrupter(controller);
-	mCore* core = controller->thread()->core;
+	CoreController::Interrupter interrupter(controller->get());
+	mCore* core = controller->get()->thread()->core;
 	mGameInfo info;
 	core->getGameInfo(core, &info);
 	m_ui.title->setText(QLatin1String(info.title));
@@ -94,7 +95,7 @@ ROMInfo::ROMInfo(std::shared_ptr<CoreController> controller, QWidget* parent)
 	m_ui.name->hide();
 #endif
 
-	QString savePath = controller->savePath();
+	QString savePath = controller->get()->savePath();
 	if (!savePath.isEmpty()) {
 		m_ui.savefile->setText(savePath);
 	} else {
